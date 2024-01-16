@@ -1,6 +1,12 @@
-import Brush from './Brush';
-import { SC_CONFIG, SCRATCH_TYPE } from './ScratchCardConfig';
-import { dispatchCustomEvent, getOffset, injectHTML, loadImage, throttle } from './utils'
+import Brush from "./Brush";
+import { SC_CONFIG, SCRATCH_TYPE } from "./ScratchCardConfig";
+import {
+  dispatchCustomEvent,
+  getOffset,
+  injectHTML,
+  loadImage,
+  throttle,
+} from "./utils";
 
 class ScratchCard {
   get canvas(): HTMLCanvasElement {
@@ -18,10 +24,10 @@ class ScratchCard {
   private defaults: SC_CONFIG;
   private scratchImage: HTMLImageElement;
   public brushImage: any;
-  public zone: {top: number, left: number};
+  public zone: { top: number; left: number };
   public percent: number;
 
-  constructor (selector: string|HTMLElement, config: SC_CONFIG) {
+  constructor(selector: string | HTMLElement, config: SC_CONFIG) {
     const self = this;
     const defaults = {
       scratchType: SCRATCH_TYPE.LINE,
@@ -31,22 +37,23 @@ class ScratchCard {
       nPoints: 0,
       pointSize: [0, 0],
       callback: function() {
-          alert('done.')
+        alert("done.");
       },
-      brushSrc: '',
-      imageForwardSrc: './images/scratchcard.png',
-      imageBackgroundSrc: './images/scratchcard-background.svg',
-      htmlBackground: '',
+      brushSrc: "",
+      imageForwardSrc: "./images/scratchcard.png",
+      imageBackgroundSrc: "./images/scratchcard-background.svg",
+      htmlBackground: "",
       clearZoneRadius: 0,
       enabledPercentUpdate: true,
     };
 
-    this.config = {...defaults, ...config};
+    this.config = { ...defaults, ...config };
     this.scratchType = this.config.scratchType;
-    this.container = <HTMLElement> (
-      this.isString(selector) ? 
-        document.querySelector(String(selector)) : selector
-      );
+    this.container = <HTMLElement>(
+      (this.isString(selector)
+        ? document.querySelector(String(selector))
+        : selector)
+    );
     this.position = [0, 0]; // init position
     this.readyToClear = false;
     this.percent = 0;
@@ -55,14 +62,14 @@ class ScratchCard {
     // Create and add the canvas
     this.generateCanvas();
 
-    this.ctx = this._canvas.getContext('2d');
+    this.ctx = this._canvas.getContext("2d");
 
     // Init the brush instance
     this.brush = new Brush(this.ctx, this.position[0], this.position[1]);
 
     // Init the brush if  necessary
     if (this.config.scratchType === SCRATCH_TYPE.BRUSH) {
-      loadImage(this.config.brushSrc).then(image => {
+      loadImage(this.config.brushSrc).then((image) => {
         this.brushImage = image;
       });
     }
@@ -70,7 +77,7 @@ class ScratchCard {
     /*---- Scratching method , call in throttle event ------------------------------------*/
     let scratching = throttle((event: Event) => {
       event.preventDefault();
-      self.dispatchEvent('scratch', 'move');
+      self.dispatchEvent("scratch", "move");
       self.position = self.mousePosition(event);
       self.brush.updateMousePosition(self.position[0], self.position[1]);
       self.scratch();
@@ -82,7 +89,7 @@ class ScratchCard {
     }, 16);
 
     /*---- Events -----------------------------------------------------------------------*/
-    this._canvas.addEventListener('mousedown', function (event) {
+    this._canvas.addEventListener("mousedown", function(event) {
       event.preventDefault();
       self._setScratchPosition();
 
@@ -92,60 +99,65 @@ class ScratchCard {
         self.brush.startLine(self.config.clearZoneRadius);
       }
 
-      self._canvas.addEventListener('mousemove', scratching);
+      self._canvas.addEventListener("mousemove", scratching);
 
-      document.body.addEventListener('mouseup', function _func (e) {
-        self._canvas.removeEventListener('mousemove', scratching);
+      document.body.addEventListener("mouseup", function _func(e) {
+        self._canvas.removeEventListener("mousemove", scratching);
         self.finish(); // clear and callback
-        this.removeEventListener('mouseup', _func);
+        this.removeEventListener("mouseup", _func);
       });
     });
 
     // Mobile events
-    this._canvas.addEventListener('touchstart', function (event) {
+    this._canvas.addEventListener("touchstart", function(event) {
       event.preventDefault();
       self._setScratchPosition();
 
       if (self.scratchType === SCRATCH_TYPE.LINE) {
         self.position = self.mousePosition(event);
         self.brush.updateMousePosition(self.position[0], self.position[1]);
-		    self.brush.startLine(self.config.clearZoneRadius);
-	    }
+        self.brush.startLine(self.config.clearZoneRadius);
+      }
 
-      self._canvas.addEventListener('touchmove', scratching);
-      document.body.addEventListener('touchend', function _func () {
-        self._canvas.removeEventListener('touchmove', scratching);
+      self._canvas.addEventListener("touchmove", scratching);
+      document.body.addEventListener("touchend", function _func() {
+        self._canvas.removeEventListener("touchmove", scratching);
         self.finish(); // clear and callback
-        this.removeEventListener('touchend', _func);
+        this.removeEventListener("touchend", _func);
       });
     });
 
     // Update canvas positions when the window has been resized
-    window.addEventListener('resize', throttle(() => {
-      this._setScratchPosition();
-    }, 100));
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        this._setScratchPosition();
+      }, 100)
+    );
 
     // Update canvas positions when the window has been scrolled
-    window.addEventListener('scroll', throttle(() => {
-      this._setScratchPosition();
-    }, 16));
+    window.addEventListener(
+      "scroll",
+      throttle(() => {
+        this._setScratchPosition();
+      }, 16)
+    );
   }
-
 
   /**
    * Check if selector is a string
-   * @param selector 
+   * @param selector
    * @returns {boolean}
    */
-  isString(selector: string|HTMLElement): boolean {
-    return (typeof selector === 'string' || selector instanceof String)
+  isString(selector: string | HTMLElement): boolean {
+    return typeof selector === "string" || selector instanceof String;
   }
 
   /**
    * Get percent of scratchCard
    * @returns {number}
    */
-  getPercent (): number {
+  getPercent(): number {
     return this.percent;
   }
 
@@ -153,15 +165,15 @@ class ScratchCard {
    * Return the top and left position
    * @private
    */
-  private _setScratchPosition () {
+  private _setScratchPosition() {
     this.zone = getOffset(this._canvas);
   }
 
-  finish () {
+  finish() {
     // Exec the callback once
     if (!this.callbackDone && this.percent > this.config.percentToFinish) {
       this.clear();
-      this._canvas.style.pointerEvents = 'none';
+      this._canvas.style.pointerEvents = "none";
       if (this.config.callback !== undefined) {
         this.callbackDone = true;
         this.config.callback();
@@ -174,61 +186,98 @@ class ScratchCard {
    * @param {string} phase
    * @param {string} type
    */
-  dispatchEvent (phase: string, type: string) {
+  dispatchEvent(phase: string, type: string) {
     dispatchCustomEvent(this._canvas, `${phase}.${type}`, {});
   }
 
-  init (): Promise<any> {
+  init(): Promise<any> {
     return new Promise((resolve: any, reject: any) => {
-      loadImage(this.config.imageForwardSrc).then((img: HTMLImageElement) => {
-        this.scratchImage = img;
-        this.ctx.drawImage(this.scratchImage, 0, 0, this._canvas.width, this._canvas.height);
-        this.setBackground();
-        // Resolve the promise init
-        resolve();
-      }, (event: Event): Error => {
-        // Reject init
-        reject(event);
-        return new TypeError(`${this.config.imageForwardSrc} is not loaded.`);
-      });
+      loadImage(this.config.imageForwardSrc).then(
+        (img: HTMLImageElement) => {
+          this.scratchImage = img;
+          this.ctx.drawImage(
+            this.scratchImage,
+            0,
+            0,
+            this._canvas.width,
+            this._canvas.height
+          );
+          this.setBackground();
+          // Resolve the promise init
+          resolve();
+        },
+        (event: Event): Error => {
+          // Reject init
+          reject(event);
+          return new TypeError(`${this.config.imageForwardSrc} is not loaded.`);
+        }
+      );
     });
   }
 
-  private generateCanvas (): void {
-    this._canvas = document.createElement('canvas');
-    this._canvas.classList.add('sc__canvas');
+  private generateCanvas(): void {
+    this._canvas = document.createElement("canvas");
+    this._canvas.classList.add("sc__canvas");
 
     // Add canvas into container
     this._canvas.width = this.config.containerWidth;
     this._canvas.height = this.config.containerHeight;
+    const PIXEL_RATIO = (function() {
+      if (typeof window === "undefined") return 1;
+      const ctx = this._canvas.getContext("2d"),
+        dpr = window.devicePixelRatio || 1,
+        bsr =
+          ctx.webkitBackingStorePixelRatio ||
+          ctx.mozBackingStorePixelRatio ||
+          ctx.msBackingStorePixelRatio ||
+          ctx.oBackingStorePixelRatio ||
+          ctx.backingStorePixelRatio ||
+          1;
+
+      return dpr / bsr;
+    })();
+
+    this._canvas.width *= PIXEL_RATIO;
+    this._canvas.height *= PIXEL_RATIO;
+    this._canvas.style.width = this.config.containerWidth + "px";
+    this._canvas.style.height = this.config.containerHeight + "px";
     this.container.appendChild(this._canvas);
   }
 
-  private setBackground (): void {
+  private setBackground(): void {
     if (this.config.htmlBackground.length !== 0) {
       injectHTML(this.config.htmlBackground, this.container);
     } else {
-      let image = document.createElement('img');
-      loadImage(this.config.imageBackgroundSrc).then((img: HTMLImageElement) => {
-        image.src = img.src;
-        this.container.insertBefore(image, this._canvas);
-      }, (error: Error) => {
-        // Stop all script here
-        console.log(error.message);
-      });
+      let image = document.createElement("img");
+      loadImage(this.config.imageBackgroundSrc).then(
+        (img: HTMLImageElement) => {
+          image.src = img.src;
+          this.container.insertBefore(image, this._canvas);
+        },
+        (error: Error) => {
+          // Stop all script here
+          console.log(error.message);
+        }
+      );
     }
-  };
+  }
 
-  mousePosition (event: any): number[] {
+  mousePosition(event: any): number[] {
     let posX: number;
     let posY: number;
 
     switch (event.type) {
-      case 'touchmove':
-        posX = event.touches[0].clientX - this.config.clearZoneRadius - this.zone.left;
-        posY = event.touches[0].clientY - this.config.clearZoneRadius - this.zone.top;
+      case "touchmove":
+        posX =
+          event.touches[0].clientX -
+          this.config.clearZoneRadius -
+          this.zone.left;
+        posY =
+          event.touches[0].clientY -
+          this.config.clearZoneRadius -
+          this.zone.top;
         break;
-      case 'mousemove':
+      case "mousemove":
         posX = event.clientX - this.config.clearZoneRadius - this.zone.left;
         posY = event.clientY - this.config.clearZoneRadius - this.zone.top;
         break;
@@ -237,12 +286,12 @@ class ScratchCard {
     return [posX, posY];
   }
 
-  scratch (): void {
+  scratch(): void {
     let x = this.position[0];
     let y = this.position[1];
     let i = 0;
 
-    this.ctx.globalCompositeOperation = 'destination-out';
+    this.ctx.globalCompositeOperation = "destination-out";
     this.ctx.save();
 
     // Choose the good method to 'paint'
@@ -254,7 +303,11 @@ class ScratchCard {
         this.brush.circle(this.config.clearZoneRadius);
         break;
       case SCRATCH_TYPE.SPRAY:
-        this.brush.spray(this.config.clearZoneRadius, this.config.pointSize,  this.config.nPoints);
+        this.brush.spray(
+          this.config.clearZoneRadius,
+          this.config.pointSize,
+          this.config.nPoints
+        );
         break;
       case SCRATCH_TYPE.LINE:
         this.brush.drawLine(this.config.clearZoneRadius);
@@ -265,39 +318,50 @@ class ScratchCard {
   }
 
   /*
-  * Image data :
-  * Red: image.data[0]
-  * Green: image.data[1]
-  * Blue: image.data[2]
-  * Alpha: image.data[3]
-  * */
-  updatePercent (): number {
+   * Image data :
+   * Red: image.data[0]
+   * Green: image.data[1]
+   * Blue: image.data[2]
+   * Alpha: image.data[3]
+   * */
+  updatePercent(): number {
     let counter = 0; // number of pixels cleared
-    let imageData = this.ctx.getImageData(0, 0, this._canvas.width, this._canvas.height);
+    let imageData = this.ctx.getImageData(
+      0,
+      0,
+      this._canvas.width,
+      this._canvas.height
+    );
     let imageDataLength = imageData.data.length;
 
     // loop data image drop every 4 items [r, g, b, a, ...]
-    for(let i = 0; i < imageDataLength; i += 4) {
+    for (let i = 0; i < imageDataLength; i += 4) {
       // Increment the counter only if the pixel in completely clear
-      if (imageData.data[i] === 0 && imageData.data[i+1] === 0 && imageData.data[i+2] === 0 && imageData.data[i+3] === 0) {
+      if (
+        imageData.data[i] === 0 &&
+        imageData.data[i + 1] === 0 &&
+        imageData.data[i + 2] === 0 &&
+        imageData.data[i + 3] === 0
+      ) {
         counter++;
       }
     }
 
-    return (counter >= 1) ? (counter / (this._canvas.width * this._canvas.height)) * 100 : 0;
+    return counter >= 1
+      ? (counter / (this._canvas.width * this._canvas.height)) * 100
+      : 0;
   }
 
   /**
    * Just clear the canvas
    */
-  clear (): void {
+  clear(): void {
     this.ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
   }
-
 }
 
 // Expose directly in window, any ideas to do this better.
 (<any>window).ScratchCard = ScratchCard;
 (<any>window).SCRATCH_TYPE = SCRATCH_TYPE;
 
-export {ScratchCard, SCRATCH_TYPE};
+export { ScratchCard, SCRATCH_TYPE };

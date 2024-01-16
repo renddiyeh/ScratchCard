@@ -1,4 +1,4 @@
-import { SC_CONFIG, SCRATCH_TYPE } from './ScratchCardConfig';
+import { SC_CONFIG, SCRATCH_TYPE } from "./ScratchCardConfig";
 declare class ScratchCard {
     get canvas(): HTMLCanvasElement;
     readonly config: SC_CONFIG;
